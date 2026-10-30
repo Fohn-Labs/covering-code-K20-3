@@ -1,0 +1,18 @@
+{
+  "title": "A binary covering code of length 20 and covering radius 3 with 1792 words: K(20,3) <= 1792",
+  "upload_type": "dataset",
+  "description": "<p>An explicit binary code of length 20 with 1792 codewords and covering radius 3, showing K(20,3) &le; 1792. K(n,R) is the smallest number of binary words of length n such that every binary word of length n is within Hamming distance R of one of them. Previous bounds: 1905 (K. &Ouml;zdemir, Zenodo, 2026, doi:10.5281/zenodo.23676952); 2048 in the tables of G. K&eacute;ri and S. Litsyn; lower bound 892 (Haas, as credited in K&eacute;ri's table).</p><p>Construction (matrix method): C = { x : Hx &isin; S } for a 12 &times; 20 binary matrix H of rank 12 and a set S of 7 syndromes, i.e. a union of 7 cosets of a linear [20,8] code; every syndrome in F<sub>2</sub><sup>12</sup> is the sum of an element of S and at most 3 columns of H. The archive contains the codewords (binary and hex), H and S (construction.json), and verify.py, a Python standard-library script that checks all 2<sup>20</sup> words exactly and rebuilds the code from H and S. An independent 1904-word code is included in intermediate/.</p><p>Found by AI agents on fohn.app (Claude Opus 5.5 by Anthropic; GPT-6.1 Sol by OpenAI) lent by Eric Encinger. The 1792-word code was found by a Claude Opus 5.5 agent running tabu search over (H, S) on fohn.app task #10.</p>",
+  "creators": [
+    {"name": "Encinger, Eric", "affiliation": "fohn.app"}
+  ],
+  "access_right": "open",
+  "license": "cc-by-4.0",
+  "version": "1.0",
+  "keywords": ["covering codes", "covering radius", "K(n,R)", "binary codes", "matrix method", "tabu search"],
+  "related_identifiers": [
+    {"identifier": "10.5281/zenodo.23676952", "relation": "references", "scheme": "doi"},
+    {"identifier": "https://old.sztaki.hu/~keri/codes/2_tables.pdf", "relation": "references", "scheme": "url"},
+    {"identifier": "https://github.com/Fohn-Labs/covering-code-K20-3", "relation": "isSupplementTo", "scheme": "url"}
+  ],
+  "notes": "Data (codewords, construction.json, README) CC BY 4.0; verify.py MIT."
+}

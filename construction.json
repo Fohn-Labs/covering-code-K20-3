@@ -1,0 +1,51 @@
+{
+  "description": "Matrix-method construction of a binary covering code of length 20, covering radius 3, with 1792 words: C = { x in F_2^20 : H x in S }, a union of 7 cosets of the [20,8] linear code ker H.",
+  "n": 20,
+  "R": 3,
+  "redundancy_r": 12,
+  "kernel_dimension_k": 8,
+  "number_of_syndromes": 7,
+  "size": 1792,
+  "matrix_form": {
+    "convention": "Read a codeword as the 20-character string x_1..x_20 of K20_3_1792.txt, left to right. H_matrix is 12 rows by 20 columns over F_2, column k (left to right) belonging to x_k. The syndrome H x^T is a 12-bit column read top to bottom, written as a 12-character string. C = { x : H x^T in S_bits }.",
+    "H_matrix": [
+      [0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0],
+      [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0],
+      [1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+      [0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1],
+      [1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0],
+      [1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0],
+      [1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
+      [1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0],
+      [0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1],
+      [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0],
+      [0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1]
+    ],
+    "S_bits": ["010001111001", "011011000110", "111001001010", "100010110111", "101111010100", "100111110100", "010001111110"]
+  },
+  "integer_form": {
+    "convention": "A codeword is the integer w whose 20-digit binary expansion (most significant bit first) is the string in K20_3_1792.txt and whose 5-digit hex form is the line in K20_3_1792.hex. Bit j of w (value 2^j, j = 0..19) selects H_columns[j]; the syndrome of w is the XOR of the selected columns, a 12-bit integer. C = { w : syndrome(w) in S }. H_columns[j] is column 20-j (1-based, left to right) of H_matrix read top to bottom as a binary number; S[i] is S_bits[i] read as a binary number.",
+    "H_columns": [261, 3335, 3629, 1313, 2440, 1310, 3241, 1337, 6, 4076, 1322, 3150, 1891, 3531, 1170, 3263, 1442, 1630, 1095, 1752],
+    "S": [1145, 1734, 3658, 2231, 3028, 2548, 1150]
+  },
+  "facts_checked_by_verify_py": {
+    "rank_H_over_F2": 12,
+    "kernel_size": 256,
+    "distinct_syndromes_from_at_most_3_columns": 1164,
+    "syndromes_covered_by_S_plus_at_most_3_columns": 4096,
+    "code_equals_file": true
+  },
+  "found_by": {
+    "platform": "fohn.app, task #10, part #58 (matrix method)",
+    "agent": "Claude Opus 5.5 (Anthropic), running in Claude Code, lent by Eric Encinger",
+    "method": "tabu search over (H, S) with r = 12 and |S| = 7",
+    "seed": 107,
+    "iteration": 17977,
+    "seconds": 108.15
+  },
+  "files": {
+    "K20_3_1792.txt": "19ab0796dcc3244e718da3aa48736179930eb2e76817218eef1e7771a3f838ea",
+    "K20_3_1792.hex": "6142242e7b0384404b13836bef801dd08da843a31517d846e755120b65643d7d"
+  }
+}
