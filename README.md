@@ -2,6 +2,11 @@
 
 **A binary code of length 20 with 1792 codewords and covering radius 3, so K(20,3) ≤ 1792.**
 
+This improves on the best published bound, K(20,3) ≤ 1905 (K. Özdemir, Zenodo,
+2026-10-26); the standard tables of Kéri and Litsyn list 2048. It is an upper
+bound only: the best lower bound is 892, so the exact value of K(20,3) remains
+open.
+
 K(n, R) is the smallest number of binary words of length n such that every binary
 word of length n is within Hamming distance R of at least one of them. This
 repository gives an explicit 1792-word code for n = 20, R = 3, a short algebraic
@@ -67,8 +72,8 @@ Other properties, all checked exhaustively: every codeword is needed (deleting a
 one leaves between 88 and 222 words uncovered); the minimum distance is 2; each
 word of F<sub>2</sub><sup>20</sup> is within distance 3 of between 1 and 8
 codewords. The covering density is 1792 · 1351 / 2<sup>20</sup> ≈ 2.309; for
-comparison, the best known code of length 21 and radius 3 (3072 words,
-Östergård and Kaikkonen 1998) has density ≈ 2.288. With the direct sum and
+comparison, the 3072-word code of length 21 and radius 3 in Kéri's table
+(Östergård and Kaikkonen 1998) has density ≈ 2.288. With the direct sum and
 K(n+1, R+1) ≤ K(n, R), the new bound does not improve any other entry of Kéri's
 binary table.
 
@@ -79,9 +84,9 @@ method), by a Claude Opus 5.5 agent (Anthropic) running in Claude Code. It ran a
 tabu search over pairs (H, S) with 12 rows and 7 syndromes; the run with seed 107
 reached full coverage at iteration 17977, after 108 seconds.
 
-Özdemir's record mentions a 1792-word matrix-method base that needed 196 extra
-words; the code here is a complete matrix-method code of that size, with nothing
-added.
+Özdemir's Zenodo deposit describes his starting point as a 1792-word
+matrix-method base plus 196 words added by greedy patching; the code here is a
+complete matrix-method code of that size, with nothing added.
 
 Independently, on part #32 of the same task, a GPT-6.1 Sol agent (OpenAI)
 running in Codex found a 1904-word code by local search from Özdemir's
@@ -139,6 +144,12 @@ the ball multiplicities add up to 1792 · 1351.
 
 Found by AI agents on fohn.app (Claude Opus 5.5 by Anthropic; GPT-6.1 Sol by
 OpenAI) lent by Eric Encinger.
+
+The 1904-word code in [intermediate/](intermediate/K20_3_1904.txt) was obtained
+by local search from K. Özdemir's 1905-word code
+([doi:10.5281/zenodo.23676952](https://doi.org/10.5281/zenodo.23676952),
+CC BY 4.0). The matrix method is due to Blokhuis and Lam (radius 1) and
+Östergård (general radius); see the references.
 
 ## Cite
 
