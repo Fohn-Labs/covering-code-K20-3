@@ -1,32 +1,45 @@
 #!/usr/bin/env python3
-"""Exact check that a binary code of length 20 has covering radius at most 3.
+"""Exact checks for the binary covering codes of length 20 and covering radius 3 in this
+repository.
 
 Usage:
-    python3 verify.py                          # checks K20_3_1792.txt and its construction
-    python3 verify.py intermediate/K20_3_1904.txt
-    python3 verify.py K20_3_1792.hex           # hex lines (5 digits) also accepted
+    python3 verify.py                     # every code file in the repository (about 15 s)
+    python3 verify.py FILE [FILE ...]     # the given files (.txt: 20-character binary
+                                          # strings; .hex: 5-digit hex numbers)
 
 Python 3.6 or later, standard library only.
 
-Check 1 (exhaustive): every one of the 2^20 = 1,048,576 binary words of length 20
-is within Hamming distance 3 of some codeword. The radius-3 ball of each codeword
-(1 + 20 + 190 + 1140 = 1351 words) is marked in a table of all 2^20 words, and the
-unmarked words are counted. Negative controls follow: the same procedure must report
-uncovered words for radius 2, and it reports how many words become uncovered when the
-first codeword is deleted.
+For each code file C (M codewords):
 
-Check 2 (construction, run when construction.json sits next to this script and the
-checked file is the 1792-word code): rebuild C = { x : H x in S } from the 12 x 20
-parity-check matrix H and the 7 syndromes S, compare it with the file as sets, and
-check the matrix-method criterion: every syndrome in F_2^12 is the sum of an element
-of S and at most 3 columns of H. That criterion alone also proves covering radius
-at most 3, independently of Check 1.
+1. Coverage, exhaustively: the radius-3 ball of every codeword (1 + 20 + 190 + 1140 = 1351
+   words) is marked in a table of all 2^20 = 1,048,576 words, counting multiplicities, and
+   every word must be marked. The multiplicities must add up to M * 1351.
+2. Radius exactly 3: the same marking with radius-2 balls must leave words unmarked.
+3. Every codeword is needed: each codeword's ball must contain words marked once (covered by
+   no other codeword), so deleting any codeword leaves words uncovered.
+4. Stabiliser: L = { d : C + d = C } is computed from the words. C is a union of cosets of the
+   linear code L (for the 1904-word code, L = {0}).
+5. Construction, when construction-<M>.json sits next to the file: C = { x : H x in S } is
+   rebuilt by computing the syndrome of all 2^20 words and compared with the file as a set;
+   rank(H), |ker H| and |S| * 2^(20 - rank) = M are checked, ker H must equal L, the 0/1
+   matrix form must agree with the integer form and send every codeword string into S, and
+   the matrix-method criterion is checked: every syndrome in F_2^r is s + (sum of at most 3
+   columns of H) for some s in S. That criterion proves covering radius <= 3 on its own,
+   independently of check 1 (flip the at most 3 coordinates of x whose columns, added to
+   H x, give an element of S).
+
+Bit convention (also in each construction file): a codeword is the integer w whose 20-digit
+binary expansion, most significant bit first, is the string in the .txt file; bit j of w
+(value 2^j) selects H_columns[j], so character k (1-based, left to right) selects column k
+of H_matrix, which is H_columns[20 - k].
 """
+import glob
 import hashlib
 import itertools
 import json
 import os
 import sys
+from array import array
 
 N = 20
 R = 3
@@ -35,7 +48,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def read_code(path):
-    """Return (sorted list of distinct 20-bit integers, number of lines, sha256)."""
+    """Return (sorted list of distinct 20-bit integers, list of 20-character strings, sha256)."""
     raw = open(path, 'rb').read()
     lines = [ln.strip() for ln in raw.decode('ascii').splitlines()]
     lines = [ln for ln in lines if ln and not ln.startswith('#')]
@@ -46,12 +59,13 @@ def read_code(path):
         elif len(ln) == 5 and all(c in '0123456789abcdefABCDEF' for c in ln):
             words.append(int(ln, 16))
         else:
-            sys.exit('unrecognised line: %r' % ln)
+            raise SystemExit('unrecognised line in %s: %r' % (path, ln))
     if len(set(words)) != len(words):
-        sys.exit('FAIL: %d duplicate lines' % (len(words) - len(set(words))))
+        raise SystemExit('FAIL: %s has %d duplicate lines' % (path, len(words) - len(set(words))))
     if any(not 0 <= w < SPACE for w in words):
-        sys.exit('FAIL: word out of range')
-    return sorted(words), len(lines), hashlib.sha256(raw).hexdigest()
+        raise SystemExit('FAIL: %s has a word out of range' % path)
+    words.sort()
+    return words, [format(w, '020b') for w in words], hashlib.sha256(raw).hexdigest()
 
 
 def ball_masks(radius):
@@ -66,18 +80,12 @@ def ball_masks(radius):
     return masks
 
 
-def uncovered_count(words, radius):
-    """Number of words of {0,1}^20 at distance > radius from every codeword."""
-    masks = ball_masks(radius)
-    covered = bytearray(SPACE)
-    for c in words:
-        for m in masks:
-            covered[c ^ m] = 1
-    return covered.count(0)
+MASKS3 = ball_masks(3)
+MASKS2 = ball_masks(2)
 
 
 def gf2_rank(vectors):
-    basis = []  # kept reduced: each new vector is reduced by all previous ones
+    basis = []  # each new vector is reduced by all previous basis vectors
     for v in vectors:
         for b in basis:
             v = min(v, v ^ b)
@@ -86,80 +94,188 @@ def gf2_rank(vectors):
     return len(basis)
 
 
-def check_construction(words):
-    cons = json.load(open(os.path.join(HERE, 'construction.json')))
-    ok = True
+def check_words(words):
+    """Checks 1-4. Returns (ok, report lines, facts)."""
+    out = []
+    count = array('H', bytes(2 * SPACE))  # multiplicities; at most 1351 < 65536
+    for c in words:
+        for m in MASKS3:
+            count[c ^ m] += 1
+    uncovered = count.count(0)
+    total = sum(count)
+    mult = [x for x in set(count)]
+    out.append('coverage: %d of %d words within distance 3 of a codeword (uncovered: %d); '
+               'multiplicities %d..%d, total %d = %d * 1351: %s'
+               % (SPACE - uncovered, SPACE, uncovered, min(mult), max(mult), total, len(words),
+                  total == len(words) * 1351))
 
-    # Integer form: bit j of a word selects column H[j].
+    marked2 = bytearray(SPACE)
+    for c in words:
+        for m in MASKS2:
+            marked2[c ^ m] = 1
+    unc2 = marked2.count(0)
+    radius = ('more than 3' if uncovered else '3' if unc2 else 'at most 2')
+    out.append('radius exactly 3: radius-2 balls leave %d words uncovered, so the covering '
+               'radius is %s' % (unc2, radius))
+
+    private = [sum(1 for m in MASKS3 if count[c ^ m] == 1) for c in words]
+    needed = sum(1 for p in private if p > 0)
+    out.append('every codeword needed: %d of %d (deleting one leaves %d to %d words uncovered)'
+               % (needed, len(words), min(private), max(private)))
+
+    member = bytearray(SPACE)
+    for c in words:
+        member[c] = 1
+    c0 = words[0]
+    stab = sorted(d for d in (c ^ c0 for c in words) if all(member[c ^ d] for c in words))
+    k = gf2_rank(stab)
+    linear = len(stab) == 1 << k
+    out.append('stabiliser L = {d : C + d = C}: %d word%s, a linear code of dimension %d: %s; '
+               'C is a union of %d cosets of L' % (len(stab), '' if len(stab) == 1 else 's', k, linear,
+                                                   len(words) // len(stab)))
+
+    ok = (uncovered == 0 and total == len(words) * 1351 and unc2 > 0 and needed == len(words)
+          and linear)
+    return ok, out, {'stabiliser': stab}
+
+
+def check_construction(path, words, strings, stab):
+    """Check 5 against construction-<M>.json. Returns (ok, report lines)."""
+    cons = json.load(open(path, encoding='utf-8'))
+    out = []
     H = cons['integer_form']['H_columns']
     S = cons['integer_form']['S']
-    rank = gf2_rank(H)
+    r = cons['redundancy_r']
+    if len(H) != N or len(set(S)) != len(S) or any(not 0 <= v < 1 << r for v in H + S):
+        return False, ['construction: malformed H or S']
+
+    # Rebuild from H and S over all 2^20 words.
     syn = [0] * SPACE
     for x in range(1, SPACE):
         low = x & -x
         syn[x] = syn[x ^ low] ^ H[low.bit_length() - 1]
     S_set = set(S)
     rebuilt = [x for x in range(SPACE) if syn[x] in S_set]
-    kernel = syn.count(0)
+    kernel = [x for x in range(SPACE) if syn[x] == 0]
+    rank = gf2_rank(H)
     same = rebuilt == words
-    print('construction (integer form): rank(H) = %d, |ker H| = %d, |{x : Hx in S}| = %d, '
-          'equal to the file as a set: %s' % (rank, kernel, len(rebuilt), same))
-    ok &= rank == 12 and kernel == 256 and len(rebuilt) == 1792 and same
+    out.append('construction (integer form): H is %d x 20 of rank %d, |ker H| = %d, |S| = %d, '
+               '|{x : Hx in S}| = %d = |S| * 2^(20-rank): %s; equal to the file as a set: %s'
+               % (r, rank, len(kernel), len(S), len(rebuilt),
+                  len(rebuilt) == len(S) << (N - rank), same))
+    ker_is_stab = kernel == stab
+    out.append('construction: ker H equals the stabiliser L: %s' % ker_is_stab)
+    ok = (rank == r and len(kernel) == 1 << (N - r) and same and ker_is_stab
+          and len(rebuilt) == len(S) << (N - rank) == cons['size'] == len(words))
 
-    # Matrix form: 12 x 20 0/1 matrix acting on the 20-character strings, left to right.
-    M = cons['matrix_form']['H_matrix']
-    S_bits = set(cons['matrix_form']['S_bits'])
-    assert len(M) == 12 and all(len(row) == N for row in M)
-    def syndrome_bits(w):
-        x = format(w, '020b')
-        return ''.join(str(sum(row[k] * (x[k] == '1') for k in range(N)) % 2) for row in M)
-    in_S = sum(1 for w in words if syndrome_bits(w) in S_bits)
-    cols = [int(''.join(str(M[i][k]) for i in range(12)), 2) for k in range(N)]
-    rank_m = gf2_rank(cols)
-    # rank 12 => each syndrome has exactly 2^(20-12) = 256 preimages, so |{x : Hx in S}| = 7 * 256
-    print('construction (0/1 matrix form): rank = %d, codewords with syndrome in S: %d of %d, '
-          '|S| * 2^(20-rank) = %d' % (rank_m, in_S, len(words), len(S_bits) * 2 ** (N - rank_m)))
-    ok &= rank_m == 12 and in_S == len(words) == len(S_bits) * 2 ** (N - rank_m)
+    # 0/1 matrix form, acting on the 20-character strings left to right.
+    Mx = cons['matrix_form']['H_matrix']
+    S_bits = cons['matrix_form']['S_bits']
+    shape_ok = len(Mx) == r and all(len(row) == N for row in Mx) and len(S_bits) == len(S)
+    cols = [int(''.join(str(Mx[i][k]) for i in range(r)), 2) for k in range(N)] if shape_ok else []
+    forms_agree = (shape_ok and cols == [H[N - 1 - k] for k in range(N)]
+                   and [int(s, 2) for s in S_bits] == S)
+    in_S = 0
+    S_bits_set = set(S_bits)
+    for x in strings:
+        ones = [k for k in range(N) if x[k] == '1']
+        s = ''.join(str(sum(Mx[i][k] for k in ones) % 2) for i in range(r))
+        in_S += s in S_bits_set
+    out.append('construction (0/1 matrix form): agrees with the integer form: %s; codeword strings '
+               'with syndrome in S_bits: %d of %d' % (forms_agree, in_S, len(strings)))
+    ok &= forms_agree and in_S == len(strings)
 
-    # Matrix-method criterion: S + {sums of <= 3 columns} = F_2^12.
+    # Matrix-method criterion: S + {sums of <= 3 columns} = F_2^r.
     sums = set()
-    for k in range(R + 1):
-        for pos in itertools.combinations(range(N), k):
-            s = 0
+    for t in range(R + 1):
+        for pos in itertools.combinations(range(N), t):
+            v = 0
             for p in pos:
-                s ^= H[p]
-            sums.add(s)
+                v ^= H[p]
+            sums.add(v)
     reach = {s ^ t for s in S for t in sums}
-    print('matrix-method criterion: %d distinct sums of <= 3 columns; S + sums covers %d of 4096 '
-          'syndromes' % (len(sums), len(reach)))
-    ok &= len(reach) == 4096
-    return ok
+    out.append('matrix-method criterion: %d distinct sums of <= 3 columns; S + sums covers %d of %d '
+               'syndromes' % (len(sums), len(reach), 1 << r))
+    ok &= len(reach) == 1 << r
+    return ok, out
+
+
+def default_files():
+    files = []
+    for sub in ('', 'previous', 'intermediate'):
+        found = [f for f in glob.glob(os.path.join(HERE, sub, 'K20_3_*')) if f.endswith(('.txt', '.hex'))]
+        files += sorted(found, key=lambda f: (os.path.basename(f)[:-4], f.endswith('.hex')))
+    return files
+
+
+def check_sums():
+    path = os.path.join(HERE, 'SHA256SUMS')
+    if not os.path.exists(path):
+        return
+    good, bad = 0, []
+    for ln in open(path):
+        if not ln.strip():
+            continue
+        digest, name = ln.split(None, 1)
+        name = name.strip().lstrip('*')
+        f = os.path.join(HERE, name)
+        if os.path.exists(f) and hashlib.sha256(open(f, 'rb').read()).hexdigest() == digest:
+            good += 1
+        else:
+            bad.append(name)
+    print('SHA256SUMS: %d of %d files match%s' % (good, good + len(bad),
+          '' if not bad else ' (differ: %s; line-ending conversion on checkout changes hashes, '
+          'not codewords)' % ', '.join(bad)))
 
 
 def main():
-    path = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, 'K20_3_1792.txt')
-    words, nlines, digest = read_code(path)
-    print('file: %s' % os.path.relpath(path))
-    print('sha256: %s' % digest)
-    print('codewords: %d (distinct, length %d)' % (len(words), N))
-
-    bad = uncovered_count(words, R)
-    print('uncovered words at radius 3: %d of %d' % (bad, SPACE))
-    valid = bad == 0
-
-    # Negative controls: the checker must find uncovered words in these cases.
-    bad2 = uncovered_count(words, 2)
-    bad_del = uncovered_count(words[1:], R)
-    print('negative controls: radius 2 leaves %d uncovered; deleting the first codeword leaves %d '
-          'uncovered at radius 3' % (bad2, bad_del))
-    controls_ok = bad2 > 0  # the deletion count is informative only (a codeword may be redundant)
-
-    cons_ok = True
-    if len(words) == 1792 and os.path.exists(os.path.join(HERE, 'construction.json')):
-        cons_ok = check_construction(words)
-
-    if valid and controls_ok and cons_ok:
-        print('VALID: K(20,3) <= %d (%d codewords, covering radius <= 3)' % (len(words), len(words)))
+    files = sys.argv[1:] or default_files()
+    if not files:
+        raise SystemExit('no code files found')
+    seen = {}
+    summary = []
+    all_ok = True
+    for path in files:
+        words, strings, digest = read_code(path)
+        rel = os.path.relpath(os.path.abspath(path), HERE)
+        print('== %s' % rel)
+        print('sha256: %s' % digest)
+        print('codewords: %d (distinct, length %d)' % (len(words), N))
+        key = tuple(words)
+        if key in seen:
+            ok, note = seen[key]
+            print('same codeword set as %s, which is checked above: %s' % (note, 'VALID' if ok else 'INVALID'))
+            summary.append((rel, len(words), ok, 'same words as ' + note))
+            all_ok &= ok
+            print()
+            continue
+        ok, lines, facts = check_words(words)
+        for ln in lines:
+            print(ln)
+        cons = os.path.join(os.path.dirname(os.path.abspath(path)), 'construction-%d.json' % len(words))
+        if os.path.exists(cons):
+            c_ok, c_lines = check_construction(cons, words, strings, facts['stabiliser'])
+            for ln in c_lines:
+                print(ln)
+            ok &= c_ok
+            how = 'rebuilt from ' + os.path.relpath(cons, HERE)
+        else:
+            how = 'no construction file'
+            print('construction: none (no construction-%d.json next to this file)' % len(words))
+        print('VALID: %d codewords, covering radius 3, every codeword needed' % len(words) if ok
+              else 'INVALID: %d codewords' % len(words))
+        print()
+        seen[key] = (ok, rel)
+        summary.append((rel, len(words), ok, how))
+        all_ok &= ok
+    print('summary')
+    for rel, m, ok, how in summary:
+        print('  %-30s %5d  %-7s  %s' % (rel, m, 'VALID' if ok else 'INVALID', how))
+    if not sys.argv[1:]:
+        check_sums()
+    if all_ok:
+        best = min(m for _, m, _, _ in summary)
+        print('ALL VALID. Best: K(20,3) <= %d' % best)
         return 0
     print('INVALID')
     return 1

@@ -1,22 +1,25 @@
 cff-version: 1.2.0
 message: >-
   If you use this code, please cite it as below. Found by AI agents on fohn.app
-  (Claude Opus 5.5 by Anthropic; GPT-6.1 Sol by OpenAI) lent by Eric Encinger.
+  (Claude Opus 5.5 by Anthropic; GPT-6.1 Sol by OpenAI), lent by Eric Encinger.
 type: dataset
-title: "A binary covering code of length 20 and covering radius 3 with 1792 words: K(20,3) <= 1792"
+title: "A binary covering code of length 20 and covering radius 3 with 1536 words: K(20,3) <= 1536"
 abstract: >-
-  An explicit binary code of length 20 with 1792 codewords and covering radius 3,
-  showing K(20,3) <= 1792 (previously 1905, Özdemir 2026; 2048 in the tables of
-  Kéri and Litsyn). The code is C = { x : Hx in S } for a 12 x 20 binary matrix H
-  of rank 12 and a set S of 7 syndromes, i.e. a union of 7 cosets of a linear
-  [20,8] code. It was found by a Claude Opus 5.5 agent running tabu search on
-  fohn.app (task #10). Includes a standard-library Python verifier that checks
-  all 2^20 words exactly and rebuilds the code from H and S.
+  An explicit binary code of length 20 with 1536 codewords and covering radius 3,
+  showing K(20,3) <= 1536. This improves the best published upper bound, 1905
+  (Özdemir 2026); the tables of Kéri and Litsyn list 2048, and the best lower
+  bound is 892. The code is C = { x : Hx in S } for a 14 x 20 binary matrix H of
+  rank 14 and a set S of 24 syndromes, i.e. a union of 24 cosets of a linear
+  [20,6] code. It was found by a Claude Opus 5.5 agent running tabu search on
+  fohn.app (task #10), after codes with 1792, 1664 and 1600 words (included, with
+  their constructions) and an independent 1904-word code by a GPT-6.1 Sol agent
+  (included). Includes a standard-library Python verifier that checks every code
+  against all 2^20 words exactly and rebuilds each matrix-method code from H and S.
 authors:
   - given-names: Eric
     family-names: Encinger
     affiliation: fohn.app
-version: "1.0"
+version: "1.1"
 date-released: "2026-10-29"
 license:
   - CC-BY-4.0
@@ -44,3 +47,9 @@ references:
       - given-names: Gerzson
         family-names: Kéri
     url: "https://old.sztaki.hu/~keri/codes/"
+  - type: database
+    title: "Table of covering codes"
+    authors:
+      - given-names: Simon
+        family-names: Litsyn
+    url: "https://www.eng.tau.ac.il/~litsyn/tablecr/"

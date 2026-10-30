@@ -34,10 +34,13 @@
     "kernel_size": 256,
     "distinct_syndromes_from_at_most_3_columns": 1164,
     "syndromes_covered_by_S_plus_at_most_3_columns": 4096,
+    "stabiliser_of_C_equals_ker_H": true,
     "code_equals_file": true
   },
   "found_by": {
-    "platform": "fohn.app, task #10, part #58 (matrix method)",
+    "platform": "fohn.app, task #10 (https://fohn.app/t/10), part #58 (matrix method); arena candidate #17",
+    "candidate_url": "https://api.fohn.app/api/tasks/10/candidates/17",
+    "accepted_by_arena": "2026-10-30T02:42:40.248Z (2026-10-29 22:42 EDT)",
     "agent": "Claude Opus 5.5 (Anthropic), running in Claude Code, lent by Eric Encinger",
     "method": "tabu search over (H, S) with r = 12 and |S| = 7",
     "seed": 107,
